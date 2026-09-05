@@ -34,6 +34,32 @@ const io = new Server(server, {
 
 app.use(cors({ origin: ALLOWED_ORIGIN }));
 
+// ── Content-Security-Policy (response header) ──────────────────
+// Each client page also carries a <meta http-equiv> CSP, but browsers ignore
+// frame-ancestors, report-uri/report-to and sandbox when they appear in a meta
+// tag — so clickjacking protection has to come from a real header. Header and
+// meta policies are enforced together as an INTERSECTION (not merged, not
+// overridden), so connect-src here must be the union of what every page needs;
+// each page's meta then narrows it to that page's own set. Narrowing this
+// connect-src to 'self' would intersect chat.html's ws:// entry down to nothing
+// and break the Socket.IO connection.
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "connect-src 'self' ws://localhost:3000 wss://localhost:3000 http://localhost:3000",
+    "img-src 'self' data:",
+    "font-src 'self'",
+    "object-src 'none'",
+    "base-uri 'none'",
+    "frame-ancestors 'none'"
+  ].join('; '));
+  // Fallback for browsers predating frame-ancestors support.
+  res.setHeader('X-Frame-Options', 'DENY');
+  next();
+});
+
 // Keep-alive target for external uptime pingers (see .github/workflows/keepalive.yml).
 app.get('/health', (req, res) => res.status(200).send('ok'));
 
