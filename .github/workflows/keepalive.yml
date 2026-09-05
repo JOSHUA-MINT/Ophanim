@@ -2,7 +2,10 @@ name: Keep Render relay awake
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    # Render free instances sleep after 15 min idle. GitHub's scheduler is
+    # best-effort and routinely runs late, so ping at the 5-min floor to leave
+    # margin. Treat this as a backup — an external pinger is the primary.
+    - cron: '*/5 * * * *'
   workflow_dispatch: {}
 
 jobs:
@@ -10,4 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping /health
-        run: curl -sf --max-time 20 https://ophanim-ay45.onrender.com/health
+        run: |
+          URL=https://ophanim-ay45.onrender.com/health
+          # A cold start takes 30-60s+, so a short timeout fails on exactly the
+          # runs that matter — the ones hitting a sleeping instance. Allow 90s
+          # and retry, since the first request is what triggers the wake.
+          for i in 1 2 3 4 5; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 90 "$URL" || echo 000)
+            if [ "$code" = "200" ]; then
+              echo "Relay awake (HTTP 200) on attempt $i"
+              exit 0
+            fi
+            echo "Attempt $i got HTTP $code; retrying in 15s"
+            sleep 15
+          done
+          echo "::error::Relay did not return 200 after 5 attempts"
+          exit 1
