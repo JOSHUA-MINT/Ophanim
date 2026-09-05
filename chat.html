@@ -324,6 +324,7 @@
     let fingerprintVerified = false;
     let selectedRoomType = 'temporary';
     let expirationInterval = null;
+    let relayWakeTimer = null;
 
     const SERVER_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
       ? 'http://localhost:3000'
@@ -363,7 +364,9 @@
     function showStatus(id, type, msg) {
       const el = document.getElementById(id);
       el.classList.remove('hidden', 'is-error', 'is-ok');
-      el.classList.add(type === 'error' ? 'is-error' : 'is-ok');
+      // 'pending' keeps the neutral base style — used while waiting on the relay.
+      if (type === 'error') el.classList.add('is-error');
+      else if (type !== 'pending') el.classList.add('is-ok');
       el.textContent = msg;
     }
 
@@ -464,6 +467,32 @@
       if (timerEl) timerEl.style.display = 'none';
     }
 
+    // ── Relay wake notice ──────────────────────────────
+    function stopRelayWakeNotice() {
+      if (relayWakeTimer) clearInterval(relayWakeTimer);
+      relayWakeTimer = null;
+    }
+
+    function startRelayWakeNotice(statusId) {
+      stopRelayWakeNotice();
+      showStatus(statusId, 'pending', 'Connecting to the relay…');
+
+      let elapsed = 0;
+      relayWakeTimer = setInterval(() => {
+        elapsed += 5;
+        if (elapsed === 5) {
+          showStatus(statusId, 'pending',
+            'Waking the relay — it sleeps when idle, so this can take up to a minute. Your keys never leave this device.');
+        } else if (elapsed === 30) {
+          showStatus(statusId, 'pending', 'Still waking the relay — nearly there.');
+        } else if (elapsed >= 90) {
+          stopRelayWakeNotice();
+          showStatus(statusId, 'error',
+            'The relay did not respond after 90 seconds. It may be down — try again shortly.');
+        }
+      }, 5000);
+    }
+
     // ── Join or create ─────────────────────────────────
     function joinRoom(isCreate) {
       const fieldSuffix = isCreate ? 'create' : 'existing';
@@ -491,9 +520,17 @@
       myPublicKey = key.publicKey;
       myPrivateKey = key.privateKey;
 
+      // The relay sleeps when idle on free hosting and takes ~30-60s to wake.
+      // Socket.IO retries quietly through that, so without this the page just
+      // looks broken for the better part of a minute. Escalate the wording as
+      // the wait grows, and give up with a real error rather than hanging.
+      startRelayWakeNotice(statusId);
+
       socket = io(SERVER_URL);
 
       socket.on('connect', () => {
+        stopRelayWakeNotice();
+        showStatus(statusId, 'pending', 'Connected. Joining the room…');
         socket.emit('join-room', {
           roomCode: currentRoom,
           name: myName,
@@ -503,6 +540,7 @@
       });
 
       socket.on('room-joined', ({ roomCode, roomType, createdAt, users }) => {
+        stopRelayWakeNotice();
         roomUsers.clear();
         users.forEach(u => roomUsers.set(u.id, { name: u.name, publicKey: u.publicKey }));
         document.getElementById('room-code-display').textContent = roomCode;
