@@ -34,6 +34,9 @@ const io = new Server(server, {
 
 app.use(cors({ origin: ALLOWED_ORIGIN }));
 
+// Keep-alive target for external uptime pingers (see .github/workflows/keepalive.yml).
+app.get('/health', (req, res) => res.status(200).send('ok'));
+
 // Serve static files from the parent directory (the client HTML files).
 // Block anything under /server/ so server source, .env, and
 // persistent_rooms.json (a list of active room codes) are never
