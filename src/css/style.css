@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Fira+Code:wght@400;500&display=swap');
 
 :root {
   --bg-deep: #060608;
@@ -16,9 +15,9 @@
   --text-primary: #f0f0f5;
   --text-secondary: #a0a0b0;
   --text-muted: #5f5f6f;
-  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-serif: 'Playfair Display', Georgia, serif;
-  --font-mono: 'Fira Code', 'Consolas', monospace;
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-serif: 'Spectral', Georgia, 'Times New Roman', serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --transition: 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
 }
 
@@ -1187,7 +1186,7 @@ h3 {
 .split-pane.red .split-tags { justify-content: flex-start; }
 .split-pane.blue .split-tags { justify-content: flex-end; }
 
-.s-tag { font-size: 0.65rem; font-weight: 600; padding: 4px 10px; border-radius: 4px; border: 1px solid; font-family: 'Fira Code', monospace; }
+.s-tag { font-size: 0.65rem; font-weight: 600; padding: 4px 10px; border-radius: 4px; border: 1px solid; font-family: var(--font-mono); }
 .s-tag.red { color: #fca5a5; border-color: rgba(248,113,113,0.25); background: rgba(248,113,113,0.05); }
 .s-tag.blue { color: #93c5fd; border-color: rgba(96,165,250,0.25); background: rgba(96,165,250,0.05); }
 
